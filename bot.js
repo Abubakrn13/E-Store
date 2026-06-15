@@ -2,6 +2,10 @@ require('dotenv').config();
 const { Bot, Keyboard, InlineKeyboard } = require('grammy');
 const express = require('express');
 const cors = require('cors');
+const path = require('path'); // Tepaga ko'chirildi
+
+// Portni Render muhitiga moslash (yoki lokal uchun 5000)
+const PORT = process.env.PORT || 5000;
 
 const bot = new Bot(process.env.BOT_TOKEN);
 
@@ -40,7 +44,7 @@ const translations = {
     no_debts: "🎉 Sizning hech qanday qarzdorligingiz topilmadi!",
     total_debt: "\n💵 UMUMIY QARZDORLIK:",
     debt_hint: "\n\n💡 To'lov chekini rasm holatida ushbu botga yuboring.",
-    no_history: "ℹ️ Sizda hali to'lovlar tarixi maroon emas.",
+    no_history: "ℹ️ Sizda hali to'lovlar tarixi mavjud emas.",
     history_title: "📜 SIZNING OXIRGI TO'LOVLARINGIZ:\n\n",
     history_success: "✅ To'lov tasdiqlangan",
     no_schedule: "🎉 Yaqin orada majburiy to'lov muddatlari yo'q.",
@@ -320,10 +324,14 @@ bot.on('message:text', async (ctx) => {
 });
 
 // ==========================================
-// 🌐 EXPRESS API
+// 🌐 EXPRESS API & STATIC FILES (Arxitektura to'g'rilandi 🛠)
 // ==========================================
 const app = express();
-app.use(cors()); app.use(express.json());
+app.use(cors()); 
+app.use(express.json());
+
+// 🌟 React Build (dist) papkasini ulash — "app.listen"dan tepaga ko'chirildi!
+app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get('/api/archived-checks', (req, res) => {
   return res.status(200).json({ success: true, checks: archivedChecks });
@@ -356,15 +364,19 @@ app.post('/api/send-remind', async (req, res) => {
   } catch (e) { return res.status(500).json({ error: e.message }); }
 });
 
-app.listen(5000, () => console.log("🚀 Server 5000-portda yoqildi!"));
-bot.start();
-
-const path = require('path');
-
-// React-ning tayyor build fayllarini Express-ga ulash
-app.use(express.static(path.join(__dirname, 'dist')));
-
-// Hamma so'rovlarga React panelni qaytarish
+// 🌟 Barcha qolgan so'rovlar uchun React interfeysini ochish (Router muammosi yechildi)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// ==========================================
+// 🚀 SERVER VA BOTNI ISHGA TUSHIRISH
+// ==========================================
+app.listen(PORT, () => {
+  console.log(`🚀 Server ${PORT}-portda muvaffaqiyatli yoqildi!`);
+  
+  // Botni parallel ravishda xavfsiz ishga tushirish
+  bot.start().catch((err) => {
+    console.error("❌ Botni start qilishda xatolik:", err.message);
+  });
 });
