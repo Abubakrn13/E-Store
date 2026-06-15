@@ -365,7 +365,7 @@ app.post('/api/send-remind', async (req, res) => {
 });
 
 // 🌟 Barcha qolgan so'rovlar uchun React interfeysini ochish (Router muammosi yechildi)
-app.get('*', (req, res) => {
+app.get('(.*)', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
